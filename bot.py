@@ -34,12 +34,12 @@ import re
 # ================= CONFIG =================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-PHOTO_MAIN = "AgACAgUAAxkBAAMCaWp0so7-QEXW1NeaxvhiGrpUcwwAAiIOaxvYT1hXe_6c5OYk6_EACAEAAwIAA3kABx4E"
-PHOTO_ABOUT = "AgACAgUAAxkBAAMDaWp0uJpKRswZsmZuEZLYkXXcxQgAAiUOaxvYT1hXUjYZHBeuLcUACAEAAwIAA3kABx4E"
-RESTART_PHOTO_ID = "AgACAgUAAxkBAAMHaWp00lbNjOXQqlRkgtHZ-iJYviUAAj0OaxvYT1hXWn7JTOo6tPsACAEAAwIAA3kABx4E"
-FORCE_SUB_PHOTO = "AgACAgUAAxkBAAMEaWp0vklUpOECcWYiGtg3Fn4lf2oAAicOaxvYT1hXjK-c_Ux9BhYACAEAAwIAA3kABx4E"
+PHOTO_MAIN = "AgACAgUAAxkBAAID62lyLtel6mZV--XRVD80q0R7dVVRAAJID2sbTVmRV3P5PjOtGe2VAAgBAAMCAAN5AAceBA"
+PHOTO_ABOUT = "AgACAgUAAxkBAAID7mlyLz2a_yvzmaaP-OtSNqDbQUMwAAJJD2sbTVmRV0h-2queTZw7AAgBAAMCAAN5AAceBA"
+RESTART_PHOTO_ID = "AgACAgUAAxkBAAID-mlyMV6EN1Pz7shByrvhIkhFPr0NAAJPD2sbTVmRVyqzmDl3CUqJAAgBAAMCAAN5AAceBA"
+FORCE_SUB_PHOTO = "AgACAgUAAxkBAAID9GlyMDhmgPfe5KWqOE-rQlbhsea6AAJMD2sbTVmRVzjEAAF5GlN6qwAIAQADAgADeQAHHgQ"
 FLINK_END_STICKER_ID = "CAACAgUAAxkBAAKf0Glwfn-qLR66Dx6d8PRKgVK8Sa6wAAIzJQACi_-AVX_joR3VTT64HgQ"
-HELP_PHOTO_ID = "AgACAgUAAxkBAAMDaWp0uJpKRswZsmZuEZLYkXXcxQgAAiUOaxvYT1hXUjYZHBeuLcUACAEAAwIAA3kABx4E"
+HELP_PHOTO_ID = "AgACAgUAAxkBAAID8WlyL9i47tAvTpZnZdGWtPGf6DKGAAJKD2sbTVmRV1rVoen2ogwdAAgBAAMCAAN5AAceBA"
 OWNER_ID = int(os.getenv("OWNER_ID", "7816936715"))
 LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "-1003548938800"))
 BD_CHANNEL_ID = int(os.getenv("BD_CHANNEL_ID", "-1002983564230"))        # Backup & Delivery channel
@@ -869,7 +869,7 @@ async def upload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Upload session incomplete (photo/caption missing).")
         return
 
-    bot_username = "uchiha_Sasuke_itachi_bot"
+    bot_username = "ANIME_uploader_ON_bot"
     links = {}
 
     # Create start links that deliver BD_CHANNEL forwarded messages
@@ -996,7 +996,7 @@ async def auto_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.send_photo(
             chat_id=user.id,
-            photo="AgACAgUAAxkBAAMFaWp0x9vbbLjl_GIvuDJ6HBfKgEEAAioOaxvYT1hXmUKoXdIUY0kACAEAAwIAA3kABx4E",
+            photo="AgACAgUAAxkBAAID92lyMMUnGoe_e60pOnAJ1Fx6P-CmAAJOD2sbTVmRV-SF6es8DtQXAAgBAAMCAAN5AAceBA",
             caption=approval_caption,
             reply_markup=buttons,
             parse_mode=constants.ParseMode.HTML
@@ -1501,7 +1501,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     continue
 
             # create 1 link per quality (batch delivery)
-            bot_username = "uchiha_Sasuke_itachi_bot" # replace with your bot username
+            bot_username = "ANIME_uploader_ON_bot" # replace with your bot username
             inline_parts = []
 
             created_any = False
@@ -1684,7 +1684,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "type": "channel_link"
         })
 
-        link = f"https://t.me/uchiha_Sasuke_itachi_bot?start={key}"
+        link = f"https://t.me/ANIME_uploader_ON_bot?start={key}"
 
         keyboard = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔗 SHARE LINK", url=f"https://t.me/share/url?url={link}")]]
@@ -1710,7 +1710,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "message_id": msg.message_id
         })
 
-        link = f"https://t.me/uchiha_Sasuke_itachi_bot?start={key}"
+        link = f"https://t.me/ANIME_uploader_ON_bot?start={key}"
 
         keyboard = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔗 Share", url=f"https://t.me/share/url?url={link}")]]
@@ -1814,7 +1814,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             del BATCH_WAIT[uid]
 
-            link = f"https://t.me/uchiha_Sasuke_itachi_bot?start={batch_key}"
+            link = f"https://t.me/ANIME_uploader_ON_bot?start={batch_key}"
 
             keyboard = InlineKeyboardMarkup(
                 [[InlineKeyboardButton("🔗 Share", url=f"https://t.me/share/url?url={link}")]]
@@ -1951,7 +1951,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         for i, doc in enumerate(links, start=1):
             key = doc["_id"]
-            link = f"https://t.me/uchiha_Sasuke_itachi_bot?start={key}"
+            link = f"https://t.me/ANIME_uploader_ON_bot?start={key}"
             text += f"{i}. {link}\n"
 
             row.append(
@@ -2297,3 +2297,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
