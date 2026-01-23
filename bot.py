@@ -46,7 +46,7 @@ BD_CHANNEL_ID = int(os.getenv("BD_CHANNEL_ID", "-1002983564230"))        # Backu
 ANIME_CHANNEL_ID = int(os.getenv("ANIME_CHANNEL_ID", "-1002990773255"))    # Anime upload channel
 MIN_UPLOAD_BUTTONS = 2
 MAX_UPLOAD_BUTTONS = 4
-MONGO_URI = os.getenv("MONGO_URI", "")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://ANI_OTAKU:ANI_OTAKU@cluster0.t3frstc.mongodb.net/?appName=Cluster0")
 DB_NAME = os.getenv("DB_NAME", "ANI_OTAKU")
 
 mongo = MongoClient(MONGO_URI)
@@ -2297,4 +2297,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
