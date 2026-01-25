@@ -171,15 +171,10 @@ def detect_quality_upload(caption_text: str | None, filename_text: str | None) -
 
     # order matters (match more specific first)
     checks = [
-        ("hdrip", "HDRip"),
         ("2160p", "2160p"),
-        ("4k", "4K"),
-        ("2k", "2K"),
         ("1080p", "1080p"),
         ("720p", "720p"),
         ("480p", "480p"),
-        ("360p", "360p"),
-        ("hd", "HD"),
     ]
 
     for needle, label in checks:
@@ -298,14 +293,6 @@ def detect_quality(text: str) -> Optional[str]:
         return None
     t = text.lower()
     # allow common variants
-    if "hdrip" in t:
-        return "HDRip"
-    if "4k" in t:
-        return "4K"
-    if "2k" in t:
-        return "2K"
-    if "360p" in t:
-        return "360p"
     if "480p" in t:
         return "480p"
     if "720p" in t:
@@ -313,9 +300,7 @@ def detect_quality(text: str) -> Optional[str]:
     if "1080p" in t:
         return "1080p"
     if "2160p" in t:
-        return "2160p"
-    if " hd" in f" {t} " or t.endswith("hd") or " hd-" in t:
-        return "HD"
+        return "4K"
 
     return None
 
@@ -463,13 +448,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if start_photo_id:
             try:
-                st = await context.bot.send_sticker(chat_id=chat_id, sticker=start_sticker_id)
+                ph = await context.bot.send_photo(chat_id=chat_id, photo=start_photo_id)
                 sent_ids.append(st.message_id)
             except:
                 pass
 
             try:
-                ph = await context.bot.send_photo(chat_id=chat_id, photo=start_photo_id)
+                st = await context.bot.send_sticker(chat_id=chat_id, sticker=start_sticker_id)
                 sent_ids.append(ph.message_id)
             except:
                 pass
@@ -1585,7 +1570,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from_id = data["from_id"]
 
             # scan range & bucket by quality
-            qualities_order = ["360p", "480p", "720p", "1080p", "2160p", "2K", "4K", "HD", "HDRip"]
+            qualities_order = [ "480p", "720p", "1080p", "2160p"]
             quality_map = {q: {"mids": [], "start_photo_id": None} for q in qualities_order}
 
             # safety limit (optional)
@@ -1608,7 +1593,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     if not q:
                         continue
                     if q in quality_map:
-                        quality_map[q].append(mid)
+                        quality_map[q]["mids"].append(mid)
 
                         if quality_map[q]["start_photo_id"] is None and cap_or_text:
                             try:
@@ -1640,7 +1625,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             created_any = False
 
             for q in qualities_order:
-                mids = quality_map[q]
+                mids = quality_map[q]["mids"]
                 if not mids:
                     continue
 
@@ -2438,6 +2423,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
