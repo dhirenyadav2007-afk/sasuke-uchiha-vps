@@ -33,21 +33,21 @@ import html
 import re
 # ================= CONFIG =================
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-PHOTO_MAIN = "AgACAgUAAxkBAAID62lyLtel6mZV--XRVD80q0R7dVVRAAJID2sbTVmRV3P5PjOtGe2VAAgBAAMCAAN5AAceBA"
-PHOTO_ABOUT = "AgACAgUAAxkBAAID7mlyLz2a_yvzmaaP-OtSNqDbQUMwAAJJD2sbTVmRV0h-2queTZw7AAgBAAMCAAN5AAceBA"
-RESTART_PHOTO_ID = "AgACAgUAAxkBAAID-mlyMV6EN1Pz7shByrvhIkhFPr0NAAJPD2sbTVmRVyqzmDl3CUqJAAgBAAMCAAN5AAceBA"
-FORCE_SUB_PHOTO = "AgACAgUAAxkBAAID9GlyMDhmgPfe5KWqOE-rQlbhsea6AAJMD2sbTVmRVzjEAAF5GlN6qwAIAQADAgADeQAHHgQ"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8485721537:AAGLfMQWt3OgPAXYqUXrYY4hfHa-cqULwjk")
+PHOTO_MAIN = "AgACAgUAAxkBAAMHaXT4R2F0IiaAH2H6ynObOdL-mOkAApcPaxs38qlXtMksj9_RyTIACAEAAwIAA3kABx4E"
+PHOTO_ABOUT = "AgACAgUAAxkBAAMKaXT4WSd1aeBFtSPWb0J1zq_deQoAApgPaxs38qlXU33FMZI5hZAACAEAAwIAA3kABx4E"
+RESTART_PHOTO_ID = "AgACAgUAAxkBAAMNaXT5WvV62BkYzQPpZaqlDTi12_wAApkPaxs38qlXR5GhBX0TOi8ACAEAAwIAA3kABx4E"
+FORCE_SUB_PHOTO = "AgACAgUAAxkBAAMQaXT5Z3PN4RHtNX5AT7rLOQzWTfMAApoPaxs38qlXqnAhCJ2plWkACAEAAwIAA3kABx4E"
 FLINK_END_STICKER_ID = "CAACAgUAAxkBAAKf0Glwfn-qLR66Dx6d8PRKgVK8Sa6wAAIzJQACi_-AVX_joR3VTT64HgQ"
-HELP_PHOTO_ID = "AgACAgUAAxkBAAID8WlyL9i47tAvTpZnZdGWtPGf6DKGAAJKD2sbTVmRV1rVoen2ogwdAAgBAAMCAAN5AAceBA"
-OWNER_ID = int(os.getenv("OWNER_ID", "7816936715"))
+HELP_PHOTO_ID = "AgACAgUAAxkBAAMTaXT5c8wqlmvRneK9eFpXSbp8f50AApsPaxs38qlXMHYCz2gbsG8ACAEAAwIAA3kABx4E"
+OWNER_ID = int(os.getenv("OWNER_ID", "7355641270"))
 LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "-1003548938800"))
 BD_CHANNEL_ID = int(os.getenv("BD_CHANNEL_ID", "-1002983564230"))        # Backup & Delivery channel
 ANIME_CHANNEL_ID = int(os.getenv("ANIME_CHANNEL_ID", "-1002990773255"))    # Anime upload channel
 MIN_UPLOAD_BUTTONS = 2
 MAX_UPLOAD_BUTTONS = 4
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://ANI_OTAKU:ANI_OTAKU@cluster0.t3frstc.mongodb.net/?appName=Cluster0")
-DB_NAME = os.getenv("DB_NAME", "ANI_OTAKU")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://Galaxy_Network:Zlqz3sLOMyAaOlT5@cluster0.prfw2el.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+DB_NAME = os.getenv("DB_NAME", "AUGUSTA_BOT")
 
 mongo = MongoClient(MONGO_URI)
 db = mongo[DB_NAME]
@@ -77,14 +77,14 @@ UPLOAD_WAIT = {}
 logging.basicConfig(level=logging.INFO)
 
 # ---------- FLASK ----------
-#app = Flask(__name__)
+app = Flask(__name__)
 
-#@app.route("/")
-#def home():
-   # return "Bot is running!", 200
+@app.route("/")
+def home():
+    return "Bot is running!", 200
 
-#def run_flask():
-   # app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+def run_flask():
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
 
 # ---------- HELPERS ----------
 
@@ -106,7 +106,7 @@ async def send_log(bot, user, action: str):
 
     text = (
         "<b>📌 BOT ACTIVITY LOG</b>\n\n"
-        f"🤖 bot : 𝑺𝒂𝒔𝒖𝒌𝒆 𝒖𝒄𝒉𝒊𝒉𝒂\n"
+        f"🤖 bot : Aᴜɢᴜsᴛᴀ\n"
         f"👤 User : {username}\n"
         f"🆔 User ID : <code>{user.id}</code>\n"
         f"⚙️ Action : <b>{action}</b>\n"
@@ -302,7 +302,7 @@ def start_keyboard():
         [
             [
                 InlineKeyboardButton("➥ 𝐀𝐁𝐎𝐔𝐓", callback_data="about"),
-                InlineKeyboardButton("➥ 𝐍𝐄𝐓𝐖𝐎𝐑𝐊", url="https://t.me/BotifyX_Pro")
+                InlineKeyboardButton("➥ 𝐍𝐄𝐓𝐖𝐎𝐑𝐊", url="https://t.me/Galaxy_Networkk")
             ],
             [InlineKeyboardButton("➥ 𝗖𝗟𝗢𝗦𝗘", callback_data="close_msg")]
         ]
@@ -605,7 +605,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "ᴡɪᴛʜ ᴛʜɪs ʙᴏᴛ,ʏᴏᴜ ᴄᴀɴ sʜᴀʀᴇ ʟɪɴᴋs, ғɪʟᴇ ᴀɴᴅ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs\n"
             " sᴀғᴇ ғʀᴏᴍ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs.</blockquote>\n\n"
             "<blockquote><b>➥ MAINTAINED BY : </b>"
-            "<a href='https://t.me/Akuma_Rei_Kami'>𝘼𝙠𝙪𝙢𝙖_𝙍𝙚𝙞</a>"
+            "<a href='https://t.me/Prince_Vegeta_36'>𝗖𝗵𝗿𝗼𝗹𝗹𝗼 𝗟𝘂𝗰𝗶𝗹𝗳𝗲𝗿</a>"
             "</blockquote>"
         ),
         reply_markup=start_keyboard(),
@@ -869,7 +869,7 @@ async def upload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Upload session incomplete (photo/caption missing).")
         return
 
-    bot_username = "ANIME_uploader_ON_bot"
+    bot_username = "AG_Augusta_bot"
     links = {}
 
     # Create start links that deliver BD_CHANNEL forwarded messages
@@ -983,20 +983,20 @@ async def auto_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"›› ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ᴛᴏ ᴊᴏɪɴ {chat.title} "
         "ʜᴀs ʙᴇᴇɴ ᴀᴘᴘʀᴏᴠᴇᴅ.</blockquote>\n\n"
         "<blockquote>›› Pᴏᴡᴇʀᴇᴅ ʙʏ : "
-        "<a href='https://t.me/Akuma_Rei_Kami'>Akuma Rei</a></blockquote>"
+        "<a href='https://t.me/Prince_Vegeta_36'>Chrollo Lucifel</a></blockquote>"
     )
 
     buttons = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton("➥ Support", url="https://t.me/BotifyX_support"),
-            InlineKeyboardButton("➥ Developer", url="https://t.me/Akuma_Rei_Kami")
+            InlineKeyboardButton("➥ Developer", url="https://t.me/Prince_Vegeta_36")
         ]]
     )
 
     try:
         await context.bot.send_photo(
             chat_id=user.id,
-            photo="AgACAgUAAxkBAAID92lyMMUnGoe_e60pOnAJ1Fx6P-CmAAJOD2sbTVmRV-SF6es8DtQXAAgBAAMCAAN5AAceBA",
+            photo="AgACAgUAAxkBAAMWaXT5f9ZbZv7IWX0Muq9jadqCV7gAApwPaxs38qlXhr_riUPhAhoACAEAAwIAA3kABx4E",
             caption=approval_caption,
             reply_markup=buttons,
             parse_mode=constants.ParseMode.HTML
@@ -1172,7 +1172,7 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Anime post uploader system\n"
         "</blockquote>\n"
         "<blockquote expandable><b>👑 Credits</b>\n"
-        "Maintained by <b>@Akuma_Rei_Kami</b>\n\n"
+        "Maintained by <b>@Prince_Vegeta_36</b>\n\n"
         "<b>⚙️ Powered by</b>\n"
         "• Python\n"
         "• python-telegram-bot\n"
@@ -1187,7 +1187,7 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("➥ Update Channel", url="https://t.me/BotifyX_Pro")
         ],
         [
-            InlineKeyboardButton("➥ Developer", url="https://t.me/Akuma_Rei_Kami"),
+            InlineKeyboardButton("➥ Developer", url="https://t.me/Prince_Vegeta_36"),
             InlineKeyboardButton("➥ CLOSE", callback_data="close_msg")
         ]]
     )
@@ -1501,7 +1501,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     continue
 
             # create 1 link per quality (batch delivery)
-            bot_username = "ANIME_uploader_ON_bot" # replace with your bot username
+            bot_username = "AG_Augusta_bot" # replace with your bot username
             inline_parts = []
 
             created_any = False
@@ -1684,7 +1684,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "type": "channel_link"
         })
 
-        link = f"https://t.me/ANIME_uploader_ON_bot?start={key}"
+        link = f"https://t.me/AG_Augusta_bot?start={key}"
 
         keyboard = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔗 SHARE LINK", url=f"https://t.me/share/url?url={link}")]]
@@ -1710,7 +1710,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "message_id": msg.message_id
         })
 
-        link = f"https://t.me/ANIME_uploader_ON_bot?start={key}"
+        link = f"https://t.me/AG_Augusta_bot?start={key}"
 
         keyboard = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔗 Share", url=f"https://t.me/share/url?url={link}")]]
@@ -1814,7 +1814,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             del BATCH_WAIT[uid]
 
-            link = f"https://t.me/ANIME_uploader_ON_bot?start={batch_key}"
+            link = f"https://t.me/AG_Augusta_bot?start={batch_key}"
 
             keyboard = InlineKeyboardMarkup(
                 [[InlineKeyboardButton("🔗 Share", url=f"https://t.me/share/url?url={link}")]]
@@ -1951,7 +1951,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         for i, doc in enumerate(links, start=1):
             key = doc["_id"]
-            link = f"https://t.me/ANIME_uploader_ON_bot?start={key}"
+            link = f"https://t.me/AG_Augusta_bot?start={key}"
             text += f"{i}. {link}\n"
 
             row.append(
@@ -2177,8 +2177,8 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 caption=(
                     "<code>BOT INFORMATION AND STATISTICS</code>\n\n"
                     "<blockquote expandable><b>»» My Name :</b>"
-                    "<a href='https://t.me/uchiha_Sasuke_itachi_bot'>𝑺𝒂𝒔𝒖𝒌𝒆 𝒖𝒄𝒉𝒊𝒉𝒂</a>\n"
-                    "<b>»» Developer :</b> @Akuma_Rei_Kami\n"
+                    "<a href='https://t.me/AG_Augusta_bot'>Aᴜɢᴜsᴛᴀ</a>\n"
+                    "<b>»» Developer :</b> @Prince_Vegeta_36\n"
                     "<b>»» Library :</b> <a href='https://docs.python-telegram-bot.org/'>PTB v22</a>\n"
                     "<b>»» Language :</b> <a href='https://www.python.org/'>Python 3</a>\n"
                     "<b>»» Database :</b> <a href='https://www.mongodb.com/docs/'>MongoDB</a>\n"
@@ -2201,7 +2201,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "ᴡɪᴛʜ ᴛʜɪs ʙᴏᴛ,ʏᴏᴜ ᴄᴀɴ sʜᴀʀᴇ ʟɪɴᴋs, ғɪʟᴇ ᴀɴᴅ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs\n"
                     " sᴀғᴇ ғʀᴏᴍ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs.</blockquote>\n\n"
                     "<blockquote><b>➥ MAINTAINED BY :</b> "
-                    "<a href='https://t.me/Akuma_Rei_Kami'>𝘼𝙠𝙪𝙢𝙖_𝙍𝙚𝙞</a>"
+                    "<a href='https://t.me/Prince_Vegeta_36'>𝗖𝗵𝗿𝗼𝗹𝗹𝗼 𝗟𝘂𝗰𝗶𝗹𝗳𝗲𝗿</a>"
                     "</blockquote>"
                 ),
                 parse_mode=constants.ParseMode.HTML
@@ -2255,7 +2255,7 @@ async def post_init(application: Application):
 
 # ---------- MAIN ----------
 def main():
-    #Thread(target=run_flask, daemon=True).start()
+    Thread(target=run_flask, daemon=True).start()
 
     application = (
         Application.builder()
@@ -2297,5 +2297,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
