@@ -38,7 +38,8 @@ PHOTO_MAIN = "AgACAgUAAxkBAAMHaXT4R2F0IiaAH2H6ynObOdL-mOkAApcPaxs38qlXtMksj9_RyT
 PHOTO_ABOUT = "AgACAgUAAxkBAAMKaXT4WSd1aeBFtSPWb0J1zq_deQoAApgPaxs38qlXU33FMZI5hZAACAEAAwIAA3kABx4E"
 RESTART_PHOTO_ID = "AgACAgUAAxkBAAMNaXT5WvV62BkYzQPpZaqlDTi12_wAApkPaxs38qlXR5GhBX0TOi8ACAEAAwIAA3kABx4E"
 FORCE_SUB_PHOTO = "AgACAgUAAxkBAAMQaXT5Z3PN4RHtNX5AT7rLOQzWTfMAApoPaxs38qlXqnAhCJ2plWkACAEAAwIAA3kABx4E"
-FLINK_END_STICKER_ID = "CAACAgUAAxkBAAKf0Glwfn-qLR66Dx6d8PRKgVK8Sa6wAAIzJQACi_-AVX_joR3VTT64HgQ"
+FLINK_END_STICKER_ID = "CAACAgUAAxkBAAKgQ2l14Z8ij8qxv-sYiNqrDiadXmGHAALIFQAConJ5VNORy6wuDv2rHgQ"
+FLINK_START_STICKER_ID = "CAACAgUAAxkBAAKgSGl17aArFiuRvEVA8tcy9lTYgGSCAAIqIAACEWAhVn94wcoGhZpzHgQ"
 HELP_PHOTO_ID = "AgACAgUAAxkBAAMTaXT5c8wqlmvRneK9eFpXSbp8f50AApsPaxs38qlXMHYCz2gbsG8ACAEAAwIAA3kABx4E"
 OWNER_ID = int(os.getenv("OWNER_ID", "7355641270"))
 LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "-1003548938800"))
@@ -157,15 +158,36 @@ def normalize_html_caption(raw: str) -> str:
     return raw
     
 # -------- quality detection ----------
-def detect_quality_upload(text: str) -> str | None:
-    if not text:
+def detect_quality_upload(caption_text: str | None, filename_text: str | None) -> str | None:
+    # rule: if caption exists -> detect from caption only
+    # else detect from filename only
+    source = (caption_text or "").strip()
+    if not source:
+        source = (filename_text or "").strip()
+    if not source:
         return None
-    t = text.lower()
-    # safer than checking "480" alone
-    for q in ("360p", "480p", "720p", "1080p"):
-        if q in t:
-            return q
+
+    t = source.lower()
+
+    # order matters (match more specific first)
+    checks = [
+        ("hdrip", "HDRip"),
+        ("2160p", "2160p"),
+        ("4k", "4K"),
+        ("2k", "2K"),
+        ("1080p", "1080p"),
+        ("720p", "720p"),
+        ("480p", "480p"),
+        ("360p", "360p"),
+        ("hd", "HD"),
+    ]
+
+    for needle, label in checks:
+        if needle in t:
+            return label
+
     return None
+
 
 # ---------- UPLOAD BUTTONS ----------
 def build_upload_buttons(links: dict):
@@ -276,19 +298,32 @@ def detect_quality(text: str) -> Optional[str]:
         return None
     t = text.lower()
     # allow common variants
+    if "hdrip" in t:
+        return "HDRip"
+    if "4k" in t:
+        return "4K"
+    if "2k" in t:
+        return "2K"
+    if "360p" in t:
+        return "360p"
     if "480p" in t:
         return "480p"
     if "720p" in t:
         return "720p"
     if "1080p" in t:
         return "1080p"
+    if "2160p" in t:
+        return "2160p"
+    if " hd" in f" {t} " or t.endswith("hd") or " hd-" in t:
+        return "HD"
+
     return None
 
-
-async def get_msg_text_via_forward(context: ContextTypes.DEFAULT_TYPE, src_chat_id: int, msg_id: int) -> str:
+async def get_msg_text_via_forward(context: ContextTypes.DEFAULT_TYPE, src_chat_id: int, msg_id: int) -> tuple[str, str]:
     """
-    PTB doesn't provide direct message fetch easily without receiving updates.
-    So: forward to LOG_CHANNEL, read text/caption, then delete that forwarded message.
+    Forward to LOG_CHANNEL, read caption/text + filename (document/video),
+    then delete that forwarded message.
+    Returns: (caption_or_text, filename)
     """
     fwd = await context.bot.forward_message(
         chat_id=LOG_CHANNEL_ID,
@@ -297,11 +332,22 @@ async def get_msg_text_via_forward(context: ContextTypes.DEFAULT_TYPE, src_chat_
         disable_notification=True
     )
 
-    text = ""
-    if getattr(fwd, "text", None):
-        text = fwd.text
-    elif getattr(fwd, "caption", None):
-        text = fwd.caption
+    cap_or_text = ""
+    if getattr(fwd, "caption", None):
+        cap_or_text = fwd.caption
+    elif getattr(fwd, "text", None):
+        cap_or_text = fwd.text
+
+    filename = ""
+    try:
+        if getattr(fwd, "document", None):
+            filename = fwd.document.file_name or ""
+        elif getattr(fwd, "video", None):
+            filename = fwd.video.file_name or ""
+        elif getattr(fwd, "audio", None):
+            filename = fwd.audio.file_name or ""
+    except:
+        filename = ""
 
     # cleanup log channel (best effort)
     try:
@@ -309,7 +355,7 @@ async def get_msg_text_via_forward(context: ContextTypes.DEFAULT_TYPE, src_chat_
     except:
         pass
 
-    return text or ""
+    return cap_or_text or "", filename or ""
 
 # ---------- AUTO DELETE ----------
 
@@ -410,6 +456,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sent_ids = []
         failed = 0
         MAX_FAILS = 25  # 🔐 safety limit
+
+        # ✅ if a captioned-image start exists, send start sticker + that image first
+        start_photo_id = doc.get("start_photo_id")
+        start_sticker_id = doc.get("start_sticker_id") or FLINK_START_STICKER_ID
+
+        if start_photo_id:
+            try:
+                st = await context.bot.send_sticker(chat_id=chat_id, sticker=start_sticker_id)
+                sent_ids.append(st.message_id)
+            except:
+                pass
+
+            try:
+                ph = await context.bot.send_photo(chat_id=chat_id, photo=start_photo_id)
+                sent_ids.append(ph.message_id)
+            except:
+                pass
 
         for mid in doc.get("message_ids", []):
             try:
@@ -1440,10 +1503,10 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif msg.video:
             fname = msg.video.file_name or ""
 
-        quality = detect_quality_upload(cap or fname)
+        quality = detect_quality_upload(cap, fname)
 
         if not quality:
-            await msg.reply_text("❌ Quality not detected (360p / 480p / 720p / 1080p). Add it in caption or filename.")
+            await msg.reply_text("❌ Quality not detected (360p / 480p / 720p / 1080p / 2160p). Add it in caption or filename.")
             return
 
         # No duplicates
@@ -1522,7 +1585,8 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from_id = data["from_id"]
 
             # scan range & bucket by quality
-            quality_map = {"480p": [], "720p": [], "1080p": []}
+            qualities_order = ["360p", "480p", "720p", "1080p", "2160p", "2K", "4K", "HD", "HDRip"]
+            quality_map = {q: {"mids": [], "start_photo_id": None} for q in qualities_order}
 
             # safety limit (optional)
             if (to_id - from_id) > 500:
@@ -1535,10 +1599,31 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             for mid in range(from_id, to_id + 1):
                 try:
-                    txt = await get_msg_text_via_forward(context, src_chat_id, mid)
-                    q = detect_quality(txt)
-                    if q:
+                    cap_or_text, filename = await get_msg_text_via_forward(context, src_chat_id, mid)
+                    q = detect_quality(cap_or_text if cap_or_text else filename)
+                    if not q:
+                        continue
+                    if q in quality_map:
                         quality_map[q].append(mid)
+
+                        if quality_map[q]["start_photo_id"] is None:
+                            try:
+                                copied = await context.bot.copy_message(
+                                    chat_id=uid,
+                                    from_chat_id=src_chat_id,
+                                    message_id=mid
+                                )
+
+                                if getattr(copied, "photo", None):
+                                    quality_map[q]["start_photo_id"] = copied.photo[-1].file_id
+
+                                    try:
+                                        await context.bot.delete_message(uid, copied.message_id)
+                                    except:
+                                        pass
+                            except:
+                                pass
+
                 except RetryAfter as e:
                     await asyncio.sleep(e.retry_after)
                 except:
@@ -1550,7 +1635,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             created_any = False
 
-            for q in ("480p", "720p", "1080p"):
+            for q in qualities_order:
                 mids = quality_map[q]
                 if not mids:
                     continue
@@ -1563,7 +1648,9 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "chat_id": src_chat_id,
                     "quality": q,
                     "message_ids": mids,
-                    "sticker_id": FLINK_END_STICKER_ID
+                    "sticker_id": FLINK_END_STICKER_ID,
+                    "start_photo_id": quality_map[q]["start_photo_id"],
+                    "start_sticker_id": FLINK_START_STICKER_ID
                 })
 
                 link = f"https://t.me/{bot_username}?start={key}"
@@ -2347,6 +2434,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
