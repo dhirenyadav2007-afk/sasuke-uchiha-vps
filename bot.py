@@ -300,7 +300,7 @@ def detect_quality(text: str) -> Optional[str]:
     if "1080p" in t:
         return "1080p"
     if "2160p" in t:
-        return "4K"
+        return "2160p"
 
     return None
 
@@ -2423,6 +2423,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
