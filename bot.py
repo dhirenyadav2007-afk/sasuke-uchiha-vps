@@ -1600,13 +1600,17 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for mid in range(from_id, to_id + 1):
                 try:
                     cap_or_text, filename = await get_msg_text_via_forward(context, src_chat_id, mid)
-                    q = detect_quality(cap_or_text if cap_or_text else filename)
+                    # ✅ caption priority, else filename
+                    txt = cap_or_text.strip() if cap_or_text else ""
+                    if not txt:
+                        txt = filename.strip()
+                        q = detect_quality(txt)
                     if not q:
                         continue
                     if q in quality_map:
                         quality_map[q].append(mid)
 
-                        if quality_map[q]["start_photo_id"] is None:
+                        if quality_map[q]["start_photo_id"] is None and cap_or_text:
                             try:
                                 copied = await context.bot.copy_message(
                                     chat_id=uid,
