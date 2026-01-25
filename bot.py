@@ -62,6 +62,7 @@ settings_col = db["settings"]
 fsub_col = db["fsub_channels"]
 fsub_pending_col = db["fsub_pending"]
 flink_col = db["flink_batches"]
+fsub_requests_col = db["fsub_requests"]  # stores pending join requests
 
 BAN_WAIT = set()
 UNBAN_WAIT = set()
@@ -233,13 +234,41 @@ async def is_user_joined(bot, user_id):
         return True
 
     for ch in channels:
+        chat_id = ch["id"]
+
+        # If join-request detected for this channel -> treat as OK
+        doc_id = f"{user_id}:{chat_id}"
+        if fsub_requests_col.find_one({"_id": doc_id}):
+            continue
+
+        # Otherwise require actual membership (for public channels or normal join)
         try:
-            m = await bot.get_chat_member(ch["id"], user_id)
+            m = await bot.get_chat_member(chat_id, user_id)
             if m.status in ("left", "kicked"):
                 return False
         except:
             return False
+
     return True
+
+async def on_fsub_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    jr = update.chat_join_request
+    if not jr:
+        return
+
+    user_id = jr.from_user.id
+    chat_id = jr.chat.id
+
+    # only track join requests for channels in FSUB list
+    if not fsub_col.find_one({"id": chat_id}):
+        return
+
+    doc_id = f"{user_id}:{chat_id}"
+    fsub_requests_col.update_one(
+        {"_id": doc_id},
+        {"$set": {"user_id": user_id, "chat_id": chat_id, "ts": datetime.utcnow()}},
+        upsert=True
+    )
 
 # ---------- QUALITY DETECTION ----------
 def detect_quality(text: str) -> Optional[str]:
@@ -601,12 +630,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
         photo=PHOTO_MAIN,
         caption=(
-            "<blockquote>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴀᴅᴠᴀɴᴄᴇᴅ ʟɪɴᴋs ᴀɴᴅ ғɪʟᴇ sʜᴀʀɪɴɢ ʙᴏᴛ.\n"
-            "ᴡɪᴛʜ ᴛʜɪs ʙᴏᴛ,ʏᴏᴜ ᴄᴀɴ sʜᴀʀᴇ ʟɪɴᴋs, ғɪʟᴇ ᴀɴᴅ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs\n"
-            " sᴀғᴇ ғʀᴏᴍ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs.</blockquote>\n\n"
-            "<blockquote><b>➥ MAINTAINED BY : </b>"
-            "<a href='https://t.me/Prince_Vegeta_36'>𝗖𝗵𝗿𝗼𝗹𝗹𝗼 𝗟𝘂𝗰𝗶𝗹𝗳𝗲𝗿</a>"
-            "</blockquote>"
+            f"<b>ʜᴇʏ {update.effective_user.mention_html()} ᴄᴜᴛɪᴇ</b> ,\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "<blockquote>➩ ɪ ᴀᴍ ᴘʟᴇᴀsᴇᴅ ᴛᴏ ɪɴғᴏʀᴍ ʏᴏᴜ ᴛʜᴀᴛ ɪ ᴄᴀɴ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ\n"
+            "ᴀɴɪᴍᴇ ғɪʟᴇs ғʀᴏᴍ ʏᴏᴜʀ ғᴀᴠᴏʀɪᴛᴇ sᴇʀɪᴇs.</blockquote>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "<blockquote>➩ ʏᴏᴜ ᴡɪʟʟ ʜᴀᴠᴇ ᴛʜᴇ ᴏᴘᴛɪᴏɴ ᴛᴏ sᴇʟᴇᴄᴛ ᴛʜᴇ ғᴏʀᴍᴀᴛ ᴏғ ʏᴏᴜʀ \n"
+            "ᴄʜᴏɪᴄᴇ, ᴡʜᴇᴛʜᴇʀ ɪᴛ ʙᴇ 480ᴘ, 720ᴘ, 1080ᴘ, ᴏʀ ᴀɴʏ ᴏᴛʜᴇʀ \n"
+            "ᴘʀᴇғᴇʀᴇɴᴄᴇ ʏᴏᴜ ᴍᴀʏ ʜᴀᴠᴇ.</blockquote>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "<blockquote>➩ ᴡᴇ ᴀʀᴇ ʜᴇʀᴇ ᴛᴏ ᴄᴀᴛᴇʀ ᴛᴏ ʏᴏᴜʀ ᴀɴɪᴍᴇ ɴᴇᴇᴅs ᴡɪᴛʜ ᴛʜᴇ\n"
+            "ᴜᴛᴍᴏsᴛ ᴘʀᴏғᴇssɪᴏɴᴀʟɪsᴍ ᴀɴᴅ ǫᴜᴀʟɪᴛʏ.</blockquote>"
+            
         ),
         reply_markup=start_keyboard(),
         parse_mode=constants.ParseMode.HTML
@@ -958,6 +993,10 @@ async def auto_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = join.from_user
     chat = join.chat
 
+    # ✅ OFF auto-approval for FSUB channels (do nothing for FSUB join requests)
+    if fsub_col.find_one({"id": chat.id}):
+        return
+
     if is_force_sub_enabled() and not await is_user_joined(context.bot, user.id):
         try:
             await context.bot.send_photo(
@@ -977,6 +1016,12 @@ async def auto_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await context.bot.approve_chat_join_request(chat.id, user.id)
+
+    # ✅ delete request record PER CHANNEL (since we store per channel now)
+    try:
+        fsub_requests_col.delete_one({"_id": f"{user.id}:{chat.id}"})
+    except:
+        pass
 
     approval_caption = (
         f"<blockquote>◈ Hᴇʏ {user.mention_html()} ×\n\n"
@@ -1003,7 +1048,6 @@ async def auto_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except:
         pass
-
 
 # ---------- SET AUTO DELETE ----------
 async def setdel_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2197,12 +2241,17 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             media=InputMediaPhoto(
                 media=PHOTO_MAIN,
                 caption=(
-                    "<blockquote>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴀᴅᴠᴀɴᴄᴇᴅ ʟɪɴᴋs ᴀɴᴅ ғɪʟᴇ sʜᴀʀɪɴɢ ʙᴏᴛ.\n"
-                    "ᴡɪᴛʜ ᴛʜɪs ʙᴏᴛ,ʏᴏᴜ ᴄᴀɴ sʜᴀʀᴇ ʟɪɴᴋs, ғɪʟᴇ ᴀɴᴅ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs\n"
-                    " sᴀғᴇ ғʀᴏᴍ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs.</blockquote>\n\n"
-                    "<blockquote><b>➥ MAINTAINED BY :</b> "
-                    "<a href='https://t.me/Prince_Vegeta_36'>𝗖𝗵𝗿𝗼𝗹𝗹𝗼 𝗟𝘂𝗰𝗶𝗹𝗳𝗲𝗿</a>"
-                    "</blockquote>"
+                    f"<b>ʜᴇʏ {update.effective_user.mention_html()} ᴄᴜᴛɪᴇ</b>\n"
+                    "➖➖➖➖➖➖➖➖➖\n"
+                    "<blockquote>➩ ɪ ᴀᴍ ᴘʟᴇᴀsᴇᴅ ᴛᴏ ɪɴғᴏʀᴍ ʏᴏᴜ ᴛʜᴀᴛ ɪ ᴄᴀɴ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ\n"
+                    "ᴀɴɪᴍᴇ ғɪʟᴇs ғʀᴏᴍ ʏᴏᴜʀ ғᴀᴠᴏʀɪᴛᴇ sᴇʀɪᴇs.</blockquote>\n"
+                    "➖➖➖➖➖➖➖➖➖\n"
+                    "<blockquote>➩ ʏᴏᴜ ᴡɪʟʟ ʜᴀᴠᴇ ᴛʜᴇ ᴏᴘᴛɪᴏɴ ᴛᴏ sᴇʟᴇᴄᴛ ᴛʜᴇ ғᴏʀᴍᴀᴛ ᴏғ ʏᴏᴜʀ\n"
+                    "ᴄʜᴏɪᴄᴇ, ᴡʜᴇᴛʜᴇʀ ɪᴛ ʙᴇ 480ᴘ, 720ᴘ, 1080ᴘ, ᴏʀ ᴀɴʏ ᴏᴛʜᴇʀ\n"
+                    "ᴘʀᴇғᴇʀᴇɴᴄᴇ ʏᴏᴜ ᴍᴀʏ ʜᴀᴠᴇ.</blockquote>\n"
+                    "➖➖➖➖➖➖➖➖➖\n"
+                    "<blockquote>➩ ᴡᴇ ᴀʀᴇ ʜᴇʀᴇ ᴛᴏ ᴄᴀᴛᴇʀ ᴛᴏ ʏᴏᴜʀ ᴀɴɪᴍᴇ ɴᴇᴇᴅs ᴡɪᴛʜ ᴛʜᴇ\n"
+                    "ᴜᴛᴍᴏsᴛ ᴘʀᴏғᴇssɪᴏɴᴀʟɪsᴍ ᴀɴᴅ ǫᴜᴀʟɪᴛʏ.</blockquote>"
                 ),
                 parse_mode=constants.ParseMode.HTML
             ),
@@ -2286,6 +2335,7 @@ def main():
     application.add_handler(CommandHandler("setuploads", setuploads_cmd))
     application.add_handler(CommandHandler("upload", upload_cmd))
     application.add_handler(CommandHandler("cancelupload", cancelupload_cmd))
+    application.add_handler(ChatJoinRequestHandler(on_fsub_join_request))
     application.add_handler(ChatJoinRequestHandler(auto_approve))
     application.add_handler(
     MessageHandler(filters.ChatType.PRIVATE & ~filters.COMMAND, private_handler)
@@ -2297,4 +2347,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
