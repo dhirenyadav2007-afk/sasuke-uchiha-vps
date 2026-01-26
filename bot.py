@@ -1636,6 +1636,11 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if not mids:
                     continue
 
+                # ✅ remove banner from mids
+                banner_mid = quality_map[q]["start_message_id"]
+                if banner_mid and banner_mid in mids:
+                    mids = [x for x in mids if x != banner_mid]
+
                 created_any = True
                 key = f"FLINK_{q}_{uuid.uuid4().hex[:12]}"
 
