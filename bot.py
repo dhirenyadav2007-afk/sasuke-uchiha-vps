@@ -157,31 +157,96 @@ def normalize_html_caption(raw: str) -> str:
 
     return raw
     
-# -------- quality detection ----------
-def detect_quality_upload(caption_text: str | None, filename_text: str | None) -> str | None:
-    # rule: if caption exists -> detect from caption only
-    # else detect from filename only
-    source = (caption_text or "").strip()
-    if not source:
-        source = (filename_text or "").strip()
-    if not source:
+# ---------- QUALITY (UNIFIED) ----------
+# Treat 2160p and HDRip as SAME label:
+HQ_LABEL = "HDRip"
+
+def detect_quality_from_text(text: str | None) -> str | None:
+    """
+    Detect quality from a single text source.
+    Returns one of: "360p","480p","720p","1080p","2160p/HDRip" or None
+    """
+    if not text:
         return None
 
-    t = source.lower()
+    t = text.lower()
 
-    # order matters (match more specific first)
-    checks = [
-        ("2160p", "2160p"),
-        ("1080p", "1080p"),
-        ("720p", "720p"),
-        ("480p", "480p"),
-    ]
+    # IMPORTANT: match more specific first
+    # 2160p and HDRip treated as SAME
+    if "2160p" in t or "hdrip" in t:
+        return HQ_LABEL
 
-    for needle, label in checks:
-        if needle in t:
-            return label
+    if "1080p" in t:
+        return "1080p"
+    if "720p" in t:
+        return "720p"
+    if "480p" in t:
+        return "480p"
+    if "360p" in t:
+        return "360p"
 
     return None
+
+
+def detect_quality_caption_or_filename(caption_text: str | None, filename_text: str | None) -> str | None:
+    """
+    Your required rule:
+    - if caption exists -> detect ONLY from caption
+    - else detect from filename
+    """
+    cap = (caption_text or "").strip()
+    if cap:
+        return detect_quality_from_text(cap)
+
+    fname = (filename_text or "").strip()
+    if fname:
+        return detect_quality_from_text(fname)
+
+    return None
+
+async def get_msg_text_via_forward(
+    context: ContextTypes.DEFAULT_TYPE,
+    src_chat_id: int,
+    msg_id: int
+) -> tuple[str, str, bool]:
+    """
+    Forward to LOG_CHANNEL, read caption/text + filename (document/video),
+    then delete that forwarded message.
+    Returns: (caption_or_text, filename, is_captioned_photo)
+    """
+    fwd = await context.bot.forward_message(
+        chat_id=LOG_CHANNEL_ID,
+        from_chat_id=src_chat_id,
+        message_id=msg_id,
+        disable_notification=True
+    )
+
+    cap_or_text = ""
+    if getattr(fwd, "caption", None):
+        cap_or_text = fwd.caption
+    elif getattr(fwd, "text", None):
+        cap_or_text = fwd.text
+
+    filename = ""
+    try:
+        if getattr(fwd, "document", None):
+            filename = fwd.document.file_name or ""
+        elif getattr(fwd, "video", None):
+            filename = fwd.video.file_name or ""
+        elif getattr(fwd, "audio", None):
+            filename = fwd.audio.file_name or ""
+    except:
+        filename = ""
+
+    # ✅ True only if the forwarded message is a photo AND has caption
+    is_captioned_photo = bool(getattr(fwd, "photo", None)) and bool(getattr(fwd, "caption", None))
+
+    try:
+        await context.bot.delete_message(LOG_CHANNEL_ID, fwd.message_id)
+    except:
+        pass
+
+    return cap_or_text or "", filename or "", is_captioned_photo
 
 
 # ---------- UPLOAD BUTTONS ----------
@@ -287,61 +352,6 @@ async def on_fsub_join_request(update: Update, context: ContextTypes.DEFAULT_TYP
         upsert=True
     )
 
-# ---------- QUALITY DETECTION ----------
-def detect_quality(text: str) -> Optional[str]:
-    if not text:
-        return None
-    t = text.lower()
-    # allow common variants
-    if "480p" in t:
-        return "480p"
-    if "720p" in t:
-        return "720p"
-    if "1080p" in t:
-        return "1080p"
-    if "2160p" in t:
-        return "2160p"
-
-    return None
-
-async def get_msg_text_via_forward(context: ContextTypes.DEFAULT_TYPE, src_chat_id: int, msg_id: int) -> tuple[str, str]:
-    """
-    Forward to LOG_CHANNEL, read caption/text + filename (document/video),
-    then delete that forwarded message.
-    Returns: (caption_or_text, filename)
-    """
-    fwd = await context.bot.forward_message(
-        chat_id=LOG_CHANNEL_ID,
-        from_chat_id=src_chat_id,
-        message_id=msg_id,
-        disable_notification=True
-    )
-
-    cap_or_text = ""
-    if getattr(fwd, "caption", None):
-        cap_or_text = fwd.caption
-    elif getattr(fwd, "text", None):
-        cap_or_text = fwd.text
-
-    filename = ""
-    try:
-        if getattr(fwd, "document", None):
-            filename = fwd.document.file_name or ""
-        elif getattr(fwd, "video", None):
-            filename = fwd.video.file_name or ""
-        elif getattr(fwd, "audio", None):
-            filename = fwd.audio.file_name or ""
-    except:
-        filename = ""
-
-    # cleanup log channel (best effort)
-    try:
-        await context.bot.delete_message(LOG_CHANNEL_ID, fwd.message_id)
-    except:
-        pass
-
-    return cap_or_text or "", filename or ""
-
 # ---------- AUTO DELETE ----------
 
 async def delete_messages(context: ContextTypes.DEFAULT_TYPE):
@@ -443,38 +453,50 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         MAX_FAILS = 25  # 🔐 safety limit
 
         # ✅ if a captioned-image start exists, send start sticker + that image first
-        start_photo_id = doc.get("start_photo_id")
+        start_banner_mid = doc.get("start_message_id")
         start_sticker_id = doc.get("start_sticker_id") or FLINK_START_STICKER_ID
-
-        if start_photo_id:
+        # ✅ 1) banner first (photo+caption exactly)
+        if start_banner_mid:
             try:
-                ph = await context.bot.send_photo(chat_id=chat_id, photo=start_photo_id)
+                banner = await context.bot.copy_message(
+                    chat_id=chat_id,
+                    from_chat_id=doc["chat_id"],
+                    message_id=start_banner_mid
+                )
+                sent_ids.append(banner.message_id)
+            except:
+                pass
+            # ✅ 2) start sticker
+            try:
+                st = await context.bot.send_sticker(chat_id=chat_id, sticker=start_sticker_id)
                 sent_ids.append(st.message_id)
             except:
                 pass
 
-            try:
-                st = await context.bot.send_sticker(chat_id=chat_id, sticker=start_sticker_id)
-                sent_ids.append(ph.message_id)
-            except:
-                pass
-
         for mid in doc.get("message_ids", []):
-            try:
-                m = await context.bot.copy_message(
-                    chat_id=chat_id,
-                    from_chat_id=doc["chat_id"],
-                    message_id=mid
-                )
-                sent_ids.append(m.message_id)
-                failed = 0
-            except RetryAfter as e:
-                await asyncio.sleep(e.retry_after)
-            except Exception:
-                failed += 1
+            retries = 0
+            while True:
+                try:
+                    m = await context.bot.copy_message(
+                        chat_id=chat_id,
+                        from_chat_id=doc["chat_id"],
+                        message_id=mid
+                    )
+                    sent_ids.append(m.message_id)
+                    failed = 0
+                    break  # success, exit retry loop
+                except RetryAfter as e:  
+                    await asyncio.sleep(e.retry_after) # ✅ wait required time
+                    retries += 1
+                    if retries >= 5:  # safety: don't loop forever
+                        failed += 1
+                        break  # skip after too many waits   
+                except Exception:
+                    failed += 1
+                    break  # skip to next message
                 if failed >= MAX_FAILS:
                     break
-
+                
         # ✅ send ending sticker (once, after batch)
         sticker_mid = None
         try:
@@ -1488,10 +1510,10 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif msg.video:
             fname = msg.video.file_name or ""
 
-        quality = detect_quality_upload(cap, fname)
+        quality = detect_quality_caption_or_filename(cap, fname)
 
         if not quality:
-            await msg.reply_text("❌ Quality not detected (360p / 480p / 720p / 1080p / 2160p). Add it in caption or filename.")
+            await msg.reply_text("❌ Quality not detected (360p / 480p / 720p / 1080p / 2160p or HDRip). Add it in caption or filename.")
             return
 
         # No duplicates
@@ -1570,8 +1592,8 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from_id = data["from_id"]
 
             # scan range & bucket by quality
-            qualities_order = [ "480p", "720p", "1080p", "2160p"]
-            quality_map = {q: {"mids": [], "start_photo_id": None} for q in qualities_order}
+            qualities_order = ["360p", "480p", "720p", "1080p", HQ_LABEL]
+            quality_map = {q: {"mids": [], "start_message_id": None} for q in qualities_order}
 
             # safety limit (optional)
             if (to_id - from_id) > 500:
@@ -1584,34 +1606,19 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             for mid in range(from_id, to_id + 1):
                 try:
-                    cap_or_text, filename = await get_msg_text_via_forward(context, src_chat_id, mid)
+                    cap_or_text, filename, is_captioned_photo = await get_msg_text_via_forward(context, src_chat_id, mid)
                     # ✅ caption priority, else filename
-                    txt = cap_or_text.strip() if cap_or_text else ""
-                    if not txt:
-                        txt = filename.strip()
-                        q = detect_quality(txt)
-                    if not q:
+                    q = detect_quality_caption_or_filename(cap_or_text, filename)
+                    if not q or q not in quality_map:
                         continue
-                    if q in quality_map:
-                        quality_map[q]["mids"].append(mid)
-
-                        if quality_map[q]["start_photo_id"] is None and cap_or_text:
-                            try:
-                                copied = await context.bot.copy_message(
-                                    chat_id=uid,
-                                    from_chat_id=src_chat_id,
-                                    message_id=mid
-                                )
-
-                                if getattr(copied, "photo", None):
-                                    quality_map[q]["start_photo_id"] = copied.photo[-1].file_id
-
-                                    try:
-                                        await context.bot.delete_message(uid, copied.message_id)
-                                    except:
-                                        pass
-                            except:
-                                pass
+                    quality_map[q]["mids"].append(mid)
+                    # ✅ banner rule:
+                    # only if THIS message is a captioned PHOTO
+                    # and the caption itself contains the quality tag
+                    if quality_map[q]["start_message_id"] is None and is_captioned_photo: 
+                            q_from_caption = detect_quality_caption_or_filename(cap_or_text, None)
+                            if q_from_caption == q:
+                                quality_map[q]["start_message_id"] = mid
 
                 except RetryAfter as e:
                     await asyncio.sleep(e.retry_after)
@@ -1638,7 +1645,7 @@ async def private_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "quality": q,
                     "message_ids": mids,
                     "sticker_id": FLINK_END_STICKER_ID,
-                    "start_photo_id": quality_map[q]["start_photo_id"],
+                    "start_message_id": quality_map[q]["start_message_id"],
                     "start_sticker_id": FLINK_START_STICKER_ID
                 })
 
@@ -2423,6 +2430,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
