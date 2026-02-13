@@ -2431,7 +2431,11 @@ async def run_bot():
 
     await application.initialize()
     await application.start()
-    await application.run_polling()
+    await application.bot.initialize()
+    await application.updater.start_polling()
+
+    # 👇 KEEP LOOP ALIVE FOREVER (RENDER SAFE)
+    await asyncio.Event().wait()
 
 
 def main():
@@ -2441,6 +2445,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
