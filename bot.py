@@ -2391,9 +2391,7 @@ async def post_init(application: Application):
     await broadcast_restart(application)
 
 # ---------- MAIN ----------
-def main():
-    Thread(target=run_flask, daemon=True).start()
-
+async def run_bot():
     application = (
         Application.builder()
         .token(BOT_TOKEN)
@@ -2426,15 +2424,28 @@ def main():
     application.add_handler(ChatJoinRequestHandler(on_fsub_join_request))
     application.add_handler(ChatJoinRequestHandler(auto_approve))
     application.add_handler(
-    MessageHandler(filters.ChatType.PRIVATE & ~filters.COMMAND, private_handler)
-)
+        MessageHandler(filters.ChatType.PRIVATE & ~filters.COMMAND, private_handler)
+    )
+
+    await application.initialize()
+    await application.start()
+    await application.bot.initialize()
+
+    print("Bot Started Successfully!")
+
+    await application.updater.start_polling()
+    await application.updater.idle()
 
 
-    application.run_polling()
+def main():
+    Thread(target=run_flask, daemon=True).start()
+    asyncio.run(run_bot())
 
 
 if __name__ == "__main__":
     main()
+
+
 
 
 
