@@ -2427,14 +2427,11 @@ async def run_bot():
         MessageHandler(filters.ChatType.PRIVATE & ~filters.COMMAND, private_handler)
     )
 
-    await application.initialize()
-    await application.start()
-    await application.bot.initialize()
-
     print("Bot Started Successfully!")
 
-    await application.updater.start_polling()
-    await application.updater.idle()
+    await application.initialize()
+    await application.start()
+    await application.run_polling()
 
 
 def main():
@@ -2444,6 +2441,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
